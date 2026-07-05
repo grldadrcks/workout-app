@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/workout_session.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
+import '../utils/muscle_colors.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -161,11 +162,21 @@ class _SessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final exercises = context.read<WorkoutProvider>().exercises;
     final duration = session.endTime?.difference(session.startTime);
     final fmt = DateFormat('EEE, MMM d · h:mm a');
     final totalDisplay = settings.toDisplay(session.totalVolume.toDouble());
 
-    final accentColor = hasPR ? const Color(0xFFFFB300) : Theme.of(context).colorScheme.primary;
+    // Dominant muscle group colour for the side bar
+    final groupCounts = <String, int>{};
+    for (final se in session.exercises) {
+      final g = muscleGroupForId(se.exerciseId, exercises);
+      groupCounts[g] = (groupCounts[g] ?? 0) + 1;
+    }
+    final dominantGroup = groupCounts.isEmpty
+        ? 'Other'
+        : groupCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    final barColor = hasPR ? const Color(0xFFFFB300) : muscleColor(dominantGroup);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -180,7 +191,7 @@ class _SessionCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: hasPR
                       ? [const Color(0xFFFFB300), const Color(0xFFF57F17)]
-                      : [accentColor, accentColor.withAlpha(160)],
+                      : [barColor, barColor.withAlpha(160)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -188,70 +199,75 @@ class _SessionCard extends StatelessWidget {
             ),
             Expanded(
               child: ExpansionTile(
-        title: Row(
-          children: [
-            Text(session.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            if (hasPR) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFB300), Color(0xFFF57F17)],
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                title: Row(
                   children: [
-                    Icon(Icons.star, size: 12, color: Colors.white),
-                    SizedBox(width: 2),
-                    Text('PR',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white)),
+                    Text(session.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (hasPR) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFB300), Color(0xFFF57F17)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.star, size: 12, color: Colors.white),
+                            SizedBox(width: 2),
+                            Text('PR',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
+                subtitle: Text(fmt.format(session.startTime)),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${totalDisplay.toInt()} ${settings.unitLabel}',
+                        style: Theme.of(context).textTheme.labelLarge),
+                    if (duration != null)
+                      Text('${duration.inMinutes}m', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+                children: session.exercises.map((se) {
+                  final group = muscleGroupForId(se.exerciseId, exercises);
+                  final color = muscleColor(group);
+                  final completedSets = se.sets.where((s) => s.isCompleted).toList();
+                  return ListTile(
+                    dense: true,
+                    leading: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                    title: Text(se.exerciseName),
+                    subtitle: Text(
+                      completedSets.isEmpty
+                          ? 'No sets logged'
+                          : completedSets.map((s) {
+                              final tags = [
+                                if (s.rpe > 0) 'RPE ${s.rpe}',
+                                if (s.isDropset) 'DS',
+                                if (s.toFailure) 'F',
+                              ].join(' ');
+                              final base =
+                                  '${settings.toDisplay(s.weight)} ${settings.unitLabel} × ${s.reps}';
+                              return tags.isNotEmpty ? '$base ($tags)' : base;
+                            }).join(', '),
+                    ),
+                  );
+                }).toList(),
               ),
-            ],
-          ],
-        ),
-        subtitle: Text(fmt.format(session.startTime)),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('${totalDisplay.toInt()} ${settings.unitLabel}',
-                style: Theme.of(context).textTheme.labelLarge),
-            if (duration != null)
-              Text('${duration.inMinutes}m', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-        children: session.exercises.map((se) {
-          final completedSets = se.sets.where((s) => s.isCompleted).toList();
-          return ListTile(
-            dense: true,
-            title: Text(se.exerciseName),
-            subtitle: Text(
-              completedSets.isEmpty
-                  ? 'No sets logged'
-                  : completedSets
-                      .map((s) {
-                        final tags = [
-                          if (s.rpe > 0) 'RPE ${s.rpe}',
-                          if (s.isDropset) 'DS',
-                          if (s.toFailure) 'F',
-                        ].join(' ');
-                        final base =
-                            '${settings.toDisplay(s.weight)} ${settings.unitLabel} × ${s.reps}';
-                        return tags.isNotEmpty ? '$base ($tags)' : base;
-                      })
-                      .join(', '),
-            ),
-          );
-        }).toList(),
-      ),
             ),
           ],
         ),

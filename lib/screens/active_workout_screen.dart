@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../models/exercise.dart';
 import '../models/workout_session.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
+import '../utils/muscle_colors.dart';
 
 class ActiveWorkoutScreen extends StatefulWidget {
   const ActiveWorkoutScreen({super.key});
@@ -151,21 +153,12 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        builder: (_, ctrl) => ListView.builder(
-          controller: ctrl,
-          itemCount: provider.exercises.length,
-          itemBuilder: (_, i) => ListTile(
-            title: Text(provider.exercises[i].name),
-            subtitle: Text(provider.exercises[i].muscleGroup),
-            onTap: () {
-              provider.addExerciseToSession(provider.exercises[i]);
-              Navigator.pop(context);
-            },
-          ),
-        ),
+      builder: (sheetCtx) => _AddExerciseSheet(
+        exercises: provider.exercises,
+        onPick: (e) {
+          provider.addExerciseToSession(e);
+          Navigator.pop(sheetCtx);
+        },
       ),
     );
   }
@@ -389,14 +382,6 @@ class _ExerciseCardState extends State<_ExerciseCard> {
     );
   }
 
-  static Color _muscleColor(String group) => const {
-    'Chest':     Color(0xFFEF5350),
-    'Back':      Color(0xFF42A5F5),
-    'Shoulders': Color(0xFFAB47BC),
-    'Legs':      Color(0xFF66BB6A),
-    'Arms':      Color(0xFFFFA726),
-    'Core':      Color(0xFF26C6DA),
-  }[group] ?? const Color(0xFF78909C);
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +395,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
         ? '${se.restSeconds}s'
         : '${se.restSeconds ~/ 60}m${se.restSeconds % 60 > 0 ? ' ${se.restSeconds % 60}s' : ''}';
     final ex = provider.exercises.where((e) => e.id == se.exerciseId).firstOrNull;
-    final muscleColor = _muscleColor(ex?.muscleGroup ?? 'Other');
+    final exColor = muscleColor(ex?.muscleGroup ?? 'Other');
 
     return Column(
       children: [
@@ -424,7 +409,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                 height: 4,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [muscleColor, muscleColor.withAlpha(140)],
+                    colors: [exColor, exColor.withAlpha(140)],
                   ),
                 ),
               ),
@@ -1015,13 +1000,14 @@ class _TagChip extends StatelessWidget {
 
 // ── Stepper widget ─────────────────────────────────────────────────────────
 
-class _Stepper extends StatelessWidget {
+class _Stepper extends StatefulWidget {
   final double value, step, min;
   final bool enabled;
   final ValueChanged<double> onChanged;
   final String Function(double) format;
 
   const _Stepper({
+    super.key,
     required this.value,
     required this.step,
     required this.min,
@@ -1029,6 +1015,48 @@ class _Stepper extends StatelessWidget {
     required this.onChanged,
     required this.format,
   });
+
+  @override
+  State<_Stepper> createState() => _StepperState();
+}
+
+class _StepperState extends State<_Stepper> {
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.format(widget.value));
+    _focus = FocusNode();
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _commit();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_Stepper old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value && !_focus.hasFocus) {
+      _ctrl.text = widget.format(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final parsed = double.tryParse(_ctrl.text);
+    if (parsed != null && parsed >= widget.min) {
+      widget.onChanged(parsed);
+    } else {
+      _ctrl.text = widget.format(widget.value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1041,25 +1069,37 @@ class _Stepper extends StatelessWidget {
         children: [
           _StepBtn(
             icon: Icons.remove,
-            enabled: enabled && value > min,
-            onTap: () => onChanged((value - step).clamp(min, double.infinity)),
+            enabled: widget.enabled && widget.value > widget.min,
+            onTap: () => widget.onChanged((widget.value - widget.step).clamp(widget.min, double.infinity)),
           ),
           Expanded(
-            child: Center(
-              child: Text(
-                format(value),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? null : Colors.grey,
-                ),
+            child: TextField(
+              controller: _ctrl,
+              focusNode: _focus,
+              enabled: widget.enabled,
+              textAlign: TextAlign.center,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
               ),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: widget.enabled ? null : Colors.grey,
+              ),
+              onTap: () => _ctrl.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _ctrl.text.length,
+              ),
+              onSubmitted: (_) => _commit(),
             ),
           ),
           _StepBtn(
             icon: Icons.add,
-            enabled: enabled,
-            onTap: () => onChanged(value + step),
+            enabled: widget.enabled,
+            onTap: () => widget.onChanged(widget.value + widget.step),
           ),
         ],
       ),
@@ -1083,6 +1123,77 @@ class _StepBtn extends StatelessWidget {
         child: Icon(icon,
             size: 16,
             color: enabled ? Theme.of(context).colorScheme.primary : Colors.grey),
+      ),
+    );
+  }
+}
+
+// ── Add Exercise Sheet ─────────────────────────────────────────────────────
+
+class _AddExerciseSheet extends StatefulWidget {
+  final List<Exercise> exercises;
+  final ValueChanged<Exercise> onPick;
+
+  const _AddExerciseSheet({required this.exercises, required this.onPick});
+
+  @override
+  State<_AddExerciseSheet> createState() => _AddExerciseSheetState();
+}
+
+class _AddExerciseSheetState extends State<_AddExerciseSheet> {
+  String _search = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _search.isEmpty
+        ? widget.exercises
+        : widget.exercises
+            .where((e) => e.name.toLowerCase().contains(_search.toLowerCase()))
+            .toList();
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      builder: (_, ctrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: TextField(
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search exercises...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => setState(() => _search = v),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: ctrl,
+              itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final e = filtered[i];
+                final color = muscleColor(e.muscleGroup);
+                return ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.fitness_center, size: 16, color: color),
+                  ),
+                  title: Text(e.name),
+                  subtitle: Text('${e.muscleGroup} · ${e.equipment}'),
+                  onTap: () => widget.onPick(e),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

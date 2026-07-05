@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../models/exercise.dart';
 import '../models/routine.dart';
 import '../providers/workout_provider.dart';
+import '../utils/muscle_colors.dart';
 
 class RoutinesScreen extends StatelessWidget {
   const RoutinesScreen({super.key});
@@ -300,9 +301,20 @@ class _RoutineExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final exercises = context.read<WorkoutProvider>().exercises;
+    final group = muscleGroupForId(re.exerciseId, exercises);
+    final color = muscleColor(group);
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: color),
+            Expanded(
+              child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,6 +345,10 @@ class _RoutineExerciseTile extends StatelessWidget {
                   onChanged: (v) => onChanged(re.copyWith(targetWeight: v)),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
             ),
           ],
         ),

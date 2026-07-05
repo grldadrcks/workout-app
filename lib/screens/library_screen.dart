@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../providers/workout_provider.dart';
 import '../services/exercise_api.dart';
 import '../services/wger_api.dart';
+import '../utils/muscle_colors.dart';
 import '../widgets/body_map.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -122,12 +123,35 @@ class _LocalTabState extends State<_LocalTab> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                        child: Text(entry.key,
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                )),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: muscleColor(entry.key),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(entry.key,
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      color: muscleColor(entry.key),
+                                    )),
+                          ],
+                        ),
                       ),
                       ...entry.value.map((e) => ListTile(
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: muscleColor(e.muscleGroup).withAlpha(35),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.fitness_center,
+                                  size: 16, color: muscleColor(e.muscleGroup)),
+                            ),
                             title: Text(e.name),
                             subtitle: Text(
                               '${e.equipment}${e.level.isNotEmpty ? ' · ${e.level}' : ''}',

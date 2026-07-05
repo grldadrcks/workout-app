@@ -66,6 +66,15 @@ class _Shell extends StatelessWidget {
     ('/settings', Icons.settings_outlined, Icons.settings, 'Settings'),
   ];
 
+  static const _tabColors = [
+    Color(0xFF2979FF), // Home      — Electric Blue
+    Color(0xFFFF6D00), // Routines  — Deep Orange
+    Color(0xFF7C4DFF), // Library   — Deep Purple
+    Color(0xFF00ACC1), // History   — Cyan
+    Color(0xFF43A047), // Progress  — Green
+    Color(0xFF78909C), // Settings  — Blue Grey
+  ];
+
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -73,23 +82,70 @@ class _Shell extends StatelessWidget {
         _tabs.indexWhere((t) => t.$1 == location).clamp(0, _tabs.length - 1);
     final hasActive = context.watch<WorkoutProvider>().activeSession != null;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(child: child),
-          if (hasActive) _MiniWorkoutBar(),
-        ],
+    final tabColor = _tabColors[currentIndex];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = Theme.of(context);
+    final onTab =
+        tabColor.computeLuminance() > 0.55 ? Colors.black87 : Colors.white;
+
+    return Theme(
+      data: base.copyWith(
+        colorScheme: base.colorScheme.copyWith(
+          primary: tabColor,
+          onPrimary: onTab,
+          primaryContainer: tabColor.withAlpha(isDark ? 50 : 40),
+          onPrimaryContainer: tabColor,
+          secondary: tabColor,
+          onSecondary: onTab,
+          secondaryContainer: tabColor.withAlpha(isDark ? 50 : 40),
+          onSecondaryContainer: tabColor,
+        ),
+        scaffoldBackgroundColor: isDark
+            ? Color.lerp(const Color(0xFF0D1117), tabColor, 0.05)!
+            : Color.lerp(const Color(0xFFF0F2F5), tabColor, 0.04)!,
+        appBarTheme: base.appBarTheme.copyWith(
+          backgroundColor: isDark
+              ? Color.lerp(const Color(0xFF0D1117), tabColor, 0.05)
+              : Color.lerp(const Color(0xFFF0F2F5), tabColor, 0.04),
+          iconTheme: IconThemeData(color: tabColor),
+          actionsIconTheme: IconThemeData(color: tabColor),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: tabColor,
+            foregroundColor: onTab,
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12))),
+          ),
+        ),
+        navigationBarTheme: base.navigationBarTheme.copyWith(
+          indicatorColor: tabColor.withAlpha(isDark ? 60 : 50),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return IconThemeData(color: tabColor);
+            }
+            return null;
+          }),
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (i) => context.go(_tabs[i].$1),
-        destinations: _tabs
-            .map((t) => NavigationDestination(
-                  icon: Icon(t.$2),
-                  selectedIcon: Icon(t.$3),
-                  label: t.$4,
-                ))
-            .toList(),
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(child: child),
+            if (hasActive) _MiniWorkoutBar(),
+          ],
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: currentIndex,
+          onDestinationSelected: (i) => context.go(_tabs[i].$1),
+          destinations: _tabs
+              .map((t) => NavigationDestination(
+                    icon: Icon(t.$2),
+                    selectedIcon: Icon(t.$3),
+                    label: t.$4,
+                  ))
+              .toList(),
+        ),
       ),
     );
   }

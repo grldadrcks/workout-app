@@ -2,10 +2,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../models/routine.dart';
 import '../models/training_program.dart';
 import '../models/workout_session.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
+import '../utils/muscle_colors.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -149,7 +151,7 @@ class HomeScreen extends StatelessWidget {
           : isNewUser
               ? null
               : FloatingActionButton.extended(
-                  onPressed: () => context.go('/routines'),
+                  onPressed: () => _showStartWorkoutSheet(context, provider),
                   icon: const Icon(Icons.add),
                   label: const Text('Start Workout'),
                 ),
@@ -728,16 +730,6 @@ class _MuscleHeatmap extends StatelessWidget {
 
   static const _groups = ['Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Core', 'Other'];
 
-  static const _muscleColors = {
-    'Chest':     Color(0xFFEF5350),
-    'Back':      Color(0xFF42A5F5),
-    'Shoulders': Color(0xFFAB47BC),
-    'Legs':      Color(0xFF66BB6A),
-    'Arms':      Color(0xFFFFA726),
-    'Core':      Color(0xFF26C6DA),
-    'Other':     Color(0xFF78909C),
-  };
-
   @override
   Widget build(BuildContext context) {
     if (hits.isEmpty) return const SizedBox.shrink();
@@ -753,7 +745,7 @@ class _MuscleHeatmap extends StatelessWidget {
           runSpacing: 6,
           children: _groups.map((g) {
             final count = hits[g] ?? 0;
-            final color = _muscleColors[g] ?? Colors.grey;
+            final color = muscleColor(g);
             return AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1004,5 +996,112 @@ class _SessionTile extends StatelessWidget {
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
     return '${dt.day}/${dt.month}/${dt.year}';
+  }
+}
+
+// ── Start Workout Sheet ────────────────────────────────────────────────────
+
+void _showStartWorkoutSheet(BuildContext context, WorkoutProvider provider) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetCtx) => _StartWorkoutSheet(
+      provider: provider,
+      onFreeWorkout: () {
+        Navigator.pop(sheetCtx);
+        provider.startSession('Free Workout');
+        context.go('/active');
+      },
+      onRoutineStart: (r) {
+        Navigator.pop(sheetCtx);
+        provider.startSession(r.name, routineId: r.id, fromRoutine: r.exercises);
+        context.go('/active');
+      },
+      onManageRoutines: () {
+        Navigator.pop(sheetCtx);
+        context.push('/routines');
+      },
+    ),
+  );
+}
+
+class _StartWorkoutSheet extends StatelessWidget {
+  final WorkoutProvider provider;
+  final VoidCallback onFreeWorkout;
+  final ValueChanged<Routine> onRoutineStart;
+  final VoidCallback onManageRoutines;
+
+  const _StartWorkoutSheet({
+    required this.provider,
+    required this.onFreeWorkout,
+    required this.onRoutineStart,
+    required this.onManageRoutines,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withAlpha(100),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Free Workout'),
+                onPressed: onFreeWorkout,
+              ),
+            ),
+            if (provider.routines.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              const Text(
+                'ROUTINES',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...provider.routines.map(
+                (r) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(r.name),
+                  subtitle: Text('${r.exercises.length} exercise${r.exercises.length != 1 ? 's' : ''}'),
+                  trailing: FilledButton.tonal(
+                    onPressed: () => onRoutineStart(r),
+                    child: const Text('Start'),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Manage Routines'),
+                onPressed: onManageRoutines,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

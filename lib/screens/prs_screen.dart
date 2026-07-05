@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
+import '../utils/muscle_colors.dart';
 
 class PrsScreen extends StatelessWidget {
   const PrsScreen({super.key});
@@ -14,6 +15,7 @@ class PrsScreen extends StatelessWidget {
 
     final sorted = prs.values.toList()
       ..sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+    final exercises = provider.exercises;
 
     return Scaffold(
       appBar: AppBar(title: const Text('All-Time PRs')),
@@ -45,6 +47,8 @@ class PrsScreen extends StatelessWidget {
                     : diff == 1
                         ? 'Yesterday'
                         : '${date.day}/${date.month}/${date.year}';
+                final group = muscleGroupForName(name, exercises);
+                final color = muscleColor(group);
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -56,14 +60,14 @@ class PrsScreen extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
+                            color: color.withAlpha(40),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: Text('${i + 1}',
                                 style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary)),
+                                    color: color)),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -78,7 +82,7 @@ class PrsScreen extends StatelessWidget {
                               Text(
                                 '${settings.formatWeight(weightKg)} × $reps reps',
                                 style: TextStyle(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: color,
                                     fontWeight: FontWeight.w600),
                               ),
                               Text(
