@@ -56,7 +56,7 @@ class SessionExercise {
     required this.orderIndex,
     this.notes = '',
     this.supersetWithNext = false,
-    this.restSeconds = 90,
+    this.restSeconds = 60,
     this.sets = const [],
   });
 
@@ -79,7 +79,7 @@ class SessionExercise {
         orderIndex: m['orderIndex'],
         notes: m['notes'] as String? ?? '',
         supersetWithNext: (m['superset_with_next'] as int? ?? 0) == 1,
-        restSeconds: m['rest_seconds'] as int? ?? 90,
+        restSeconds: m['rest_seconds'] as int? ?? 60,
       );
 }
 

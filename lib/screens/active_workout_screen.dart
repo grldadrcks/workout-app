@@ -21,7 +21,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   late final Timer _timer;
   int _elapsed = 0;
   int? _restSeconds;
-  int _restTotal = 90;
+  int _restTotal = 60;
   Timer? _restTimer;
   bool _restOverlay = false;
   final _player = AudioPlayer();

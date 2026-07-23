@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../providers/workout_provider.dart';
 import '../services/exercise_api.dart';
 import '../services/wger_api.dart';
+import '../services/workoutx_api.dart';
 import '../utils/muscle_colors.dart';
 import '../widgets/body_map.dart';
 
@@ -190,6 +191,7 @@ class _OnlineTabState extends State<_OnlineTab> {
   final _ctrl = TextEditingController();
   String _source = 'ninja';
   String _filterMuscle = 'Any';
+  String _filterEquipment = 'All';
   List<Exercise> _results = [];
   bool _loading = false;
   String? _error;
@@ -200,6 +202,10 @@ class _OnlineTabState extends State<_OnlineTab> {
     'middle_back', 'neck', 'quadriceps', 'shoulders', 'traps', 'triceps',
   ];
 
+  static const _wxEquipments = [
+    'All', 'machine', 'barbell', 'dumbbell', 'cable', 'body weight', 'band', 'kettlebell',
+  ];
+
   Future<void> _search() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -207,6 +213,11 @@ class _OnlineTabState extends State<_OnlineTab> {
       final List<Exercise> results;
       if (_source == 'wger') {
         results = await WgerApi.search(name: term);
+      } else if (_source == 'workoutx') {
+        results = await WorkoutXApi.search(
+          name: term,
+          equipment: _filterEquipment == 'All' ? null : _filterEquipment,
+        );
       } else {
         results = await ExerciseApi.search(
           name: term,
@@ -234,28 +245,42 @@ class _OnlineTabState extends State<_OnlineTab> {
         // Source toggle
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            children: [
-              ChoiceChip(
-                label: const Text('API Ninjas'),
-                selected: _source == 'ninja',
-                onSelected: (_) => setState(() {
-                  _source = 'ninja';
-                  _results = [];
-                  _error = null;
-                }),
-              ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('wger'),
-                selected: _source == 'wger',
-                onSelected: (_) => setState(() {
-                  _source = 'wger';
-                  _results = [];
-                  _error = null;
-                }),
-              ),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('API Ninjas'),
+                  selected: _source == 'ninja',
+                  onSelected: (_) => setState(() {
+                    _source = 'ninja';
+                    _results = [];
+                    _error = null;
+                  }),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('wger'),
+                  selected: _source == 'wger',
+                  onSelected: (_) => setState(() {
+                    _source = 'wger';
+                    _results = [];
+                    _error = null;
+                  }),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('WorkoutX'),
+                  selected: _source == 'workoutx',
+                  onSelected: (_) => setState(() {
+                    _source = 'workoutx';
+                    _results = [];
+                    _error = null;
+                    _filterEquipment = 'All';
+                  }),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -280,7 +305,7 @@ class _OnlineTabState extends State<_OnlineTab> {
             ],
           ),
         ),
-        // Muscle filter chips — only shown for API Ninjas (wger doesn't support server-side muscle filter)
+        // Muscle filter chips — only shown for API Ninjas
         if (_source == 'ninja') ...[
           const SizedBox(height: 8),
           SizedBox(
@@ -295,6 +320,28 @@ class _OnlineTabState extends State<_OnlineTab> {
                     label: Text(m == 'Any' ? 'Any Muscle' : m.replaceAll('_', ' ')),
                     selected: _filterMuscle == m,
                     onSelected: (_) => setState(() => _filterMuscle = m),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+        // Equipment filter chips — only shown for WorkoutX
+        if (_source == 'workoutx') ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: _wxEquipments.map((eq) {
+                final label = eq == 'All' ? 'All Equipment' : eq;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(label),
+                    selected: _filterEquipment == eq,
+                    onSelected: (_) => setState(() => _filterEquipment = eq),
                   ),
                 );
               }).toList(),
@@ -394,6 +441,32 @@ class _OnlineTabState extends State<_OnlineTab> {
                 if (e.level.isNotEmpty) Chip(label: Text(e.level)),
               ],
             ),
+            if (e.gifUrl != null) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  e.gifUrl!,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) => progress == null
+                      ? child
+                      : SizedBox(
+                          height: 220,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: progress.expectedTotalBytes != null
+                                  ? progress.cumulativeBytesLoaded /
+                                      progress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        ),
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ],
             if (e.instructions.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Instructions', style: Theme.of(context).textTheme.titleSmall),

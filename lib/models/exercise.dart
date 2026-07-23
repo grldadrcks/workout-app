@@ -6,6 +6,7 @@ class Exercise {
   final String level;
   final List<String> instructions;
   final bool isCustom;
+  final String? gifUrl;
 
   const Exercise({
     required this.id,
@@ -15,6 +16,7 @@ class Exercise {
     this.level = '',
     this.instructions = const [],
     this.isCustom = false,
+    this.gifUrl,
   });
 
   Map<String, dynamic> toMap() => {
@@ -25,6 +27,7 @@ class Exercise {
         'level': level,
         'instructions': instructions.join('||'),
         'isCustom': isCustom ? 1 : 0,
+        'gifUrl': gifUrl,
       };
 
   factory Exercise.fromMap(Map<String, dynamic> m) => Exercise(
@@ -37,6 +40,7 @@ class Exercise {
             ? (m['instructions'] as String).split('||')
             : [],
         isCustom: m['isCustom'] == 1,
+        gifUrl: m['gifUrl'] as String?,
       );
 
   factory Exercise.fromJson(Map<String, dynamic> j) {

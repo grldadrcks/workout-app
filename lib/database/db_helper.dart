@@ -25,7 +25,7 @@ class DbHelper {
 
   Future<Database> _initDb() async {
     final path = join(await getDatabasesPath(), 'workout.db');
-    return openDatabase(path, version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return openDatabase(path, version: 5, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -79,6 +79,9 @@ class DbHelper {
         )
       ''');
     }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE exercises ADD COLUMN gifUrl TEXT');
+    }
   }
 
   Future<void> _createTables(Database db) async {
@@ -90,7 +93,8 @@ class DbHelper {
         equipment TEXT NOT NULL,
         level TEXT NOT NULL DEFAULT "",
         instructions TEXT NOT NULL DEFAULT "",
-        isCustom INTEGER NOT NULL DEFAULT 0
+        isCustom INTEGER NOT NULL DEFAULT 0,
+        gifUrl TEXT
       )
     ''');
     await db.execute('''
