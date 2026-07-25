@@ -40,6 +40,11 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
           IconButton(
+            icon: const Icon(Icons.directions_bike_outlined),
+            onPressed: () => context.push('/cardio'),
+            tooltip: 'Cardio Machine',
+          ),
+          IconButton(
             icon: const Icon(Icons.calculate_outlined),
             onPressed: () => context.push('/plate-calc'),
             tooltip: 'Plate Calculator',

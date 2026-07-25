@@ -17,6 +17,7 @@ import 'screens/plate_calculator_screen.dart';
 import 'screens/badges_screen.dart';
 import 'screens/prs_screen.dart';
 import 'screens/programs_screen.dart';
+import 'screens/cardio_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -39,6 +40,7 @@ final router = GoRouter(
     GoRoute(path: '/badges', builder: (ctx, _) => const BadgesScreen()),
     GoRoute(path: '/prs', builder: (ctx, _) => const PrsScreen()),
     GoRoute(path: '/programs', builder: (ctx, _) => const ProgramsScreen()),
+    GoRoute(path: '/cardio', builder: (ctx, _) => const CardioScreen()),
     ShellRoute(
       builder: (context, _, child) => _Shell(child: child),
       routes: [
