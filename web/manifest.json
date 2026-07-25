@@ -1,11 +1,11 @@
 {
-    "name": "workout_app",
-    "short_name": "workout_app",
+    "name": "Forge",
+    "short_name": "Forge",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#2A7D4F",
+    "theme_color": "#2A7D4F",
+    "description": "Forge — workout tracker",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
