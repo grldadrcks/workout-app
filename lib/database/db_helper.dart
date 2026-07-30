@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import '_file_ops_native.dart' if (dart.library.html) '_file_ops_web.dart';
 import '../models/body_measurement.dart';
 import '../models/body_weight_entry.dart';
 import '../models/exercise.dart';
@@ -389,21 +388,6 @@ class DbHelper {
     return buf.toString();
   }
 
-  Future<String> getDatabasePath() async {
-    return join(await getDatabasesPath(), 'workout.db');
-  }
-
-  Future<void> restoreFromFile(String sourcePath) async {
-    _db = null;
-    final dest = join(await getDatabasesPath(), 'workout.db');
-    await File(sourcePath).copy(dest);
-  }
-
-  Future<String> backupToDocuments() async {
-    final src = join(await getDatabasesPath(), 'workout.db');
-    final dir = await getApplicationDocumentsDirectory();
-    final dest = join(dir.path, 'motagym_backup.db');
-    await File(src).copy(dest);
-    return dest;
-  }
+  Future<String> backupToDocuments() => backupDatabase();
+  Future<void> restoreFromFile(String path) => restoreDatabase(path);
 }

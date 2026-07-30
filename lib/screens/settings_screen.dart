@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -179,29 +179,31 @@ class SettingsScreen extends StatelessWidget {
               }
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.backup_outlined),
-            title: const Text('Backup database'),
-            subtitle: const Text('Share a copy of your workout database'),
-            onTap: () async {
-              try {
-                final path = await provider.backupDb();
-                await Share.shareXFiles([XFile(path)], subject: 'Forge Backup');
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Backup failed: $e')),
-                  );
+          if (!kIsWeb) ...[
+            ListTile(
+              leading: const Icon(Icons.backup_outlined),
+              title: const Text('Backup database'),
+              subtitle: const Text('Share a copy of your workout database'),
+              onTap: () async {
+                try {
+                  final path = await provider.backupDb();
+                  await Share.shareXFiles([XFile(path)], subject: 'Forge Backup');
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Backup failed: $e')),
+                    );
+                  }
                 }
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.restore_outlined),
-            title: const Text('Restore from backup'),
-            subtitle: const Text('Replace database with a backup file'),
-            onTap: () => _confirmRestore(context, provider),
-          ),
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore_outlined),
+              title: const Text('Restore from backup'),
+              subtitle: const Text('Replace database with a backup file'),
+              onTap: () => _confirmRestore(context, provider),
+            ),
+          ],
           const SizedBox(height: 32),
         ],
       ),
