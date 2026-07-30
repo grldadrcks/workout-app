@@ -14,7 +14,7 @@ const _seed = Color(0xFF2979FF);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) {
-    databaseFactory = databaseFactoryFfiWeb;
+    databaseFactory = databaseFactoryFfiWebNoWebWorker;
   } else {
     await NotificationService.init();
   }
