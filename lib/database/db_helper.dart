@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -197,6 +198,15 @@ class DbHelper {
   // ── Exercises ──────────────────────────────────────────────────────────────
 
   Future<List<Exercise>> getExercises() async {
+    if (kIsWeb) {
+      final raw = await rootBundle.loadString('assets/exercises.json');
+      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+      return list.map(Exercise.fromJson).toList()
+        ..sort((a, b) {
+          final mg = a.muscleGroup.compareTo(b.muscleGroup);
+          return mg != 0 ? mg : a.name.compareTo(b.name);
+        });
+    }
     final d = await db;
     final rows = await d.query('exercises', orderBy: 'muscleGroup, name');
     return rows.map(Exercise.fromMap).toList();

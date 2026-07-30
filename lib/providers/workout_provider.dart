@@ -102,14 +102,20 @@ class WorkoutProvider extends ChangeNotifier {
   List<AppBadge> get earnedBadges => allBadges.where((b) => b.check(this)).toList();
 
   Future<void> loadAll() async {
-    exercises = await _db.getExercises();
-    routines = await _db.getRoutines();
-    sessions = await _db.getSessions();
-    bodyWeights = await _db.getBodyWeights();
-    bodyMeasurements = await _db.getBodyMeasurements();
-    nutritionLogs = await _db.getNutritionLogs();
-    final prefs = await SharedPreferences.getInstance();
-    activeProgram = ActiveProgram.tryFromJsonString(prefs.getString('active_program'));
+    try {
+      exercises = await _db.getExercises();
+    } catch (_) {}
+    try {
+      routines = await _db.getRoutines();
+      sessions = await _db.getSessions();
+      bodyWeights = await _db.getBodyWeights();
+      bodyMeasurements = await _db.getBodyMeasurements();
+      nutritionLogs = await _db.getNutritionLogs();
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      activeProgram = ActiveProgram.tryFromJsonString(prefs.getString('active_program'));
+    } catch (_) {}
     notifyListeners();
   }
 
