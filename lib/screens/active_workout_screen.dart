@@ -428,10 +428,12 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                           GestureDetector(
                             onTap: () => _showFormCues(context, se.exerciseId, se.exerciseName, provider),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(se.exerciseName,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Flexible(
+                                  child: Text(se.exerciseName,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      overflow: TextOverflow.ellipsis),
+                                ),
                                 const SizedBox(width: 4),
                                 Icon(Icons.info_outline, size: 14,
                                     color: Theme.of(context).colorScheme.primary.withAlpha(150)),
